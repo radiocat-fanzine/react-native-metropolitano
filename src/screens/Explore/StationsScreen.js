@@ -94,14 +94,24 @@ export default function StationsScreen() {
                         longitudeDelta: 0.12,
                     }}
                 >
+                    {/* Dibuja la ruta del Metropolitano en el mapa */}
+                    <Polyline
+                        coordinates={[
+                            { latitude: routePlan.startStation.lat, longitude: routePlan.startStation.lng },
+                            { latitude: routePlan.endStation.lat, longitude: routePlan.endStation.lng }
+                        ]}
+                        strokeColor={colors.primary}
+                        strokeWidth={4}
+                        lineDashPattern={[5, 2]}
+                    />
                     <Marker 
                         coordinate={{ latitude: origin.coords.lat, longitude: origin.coords.lng }}
-                        title="Tu Origen"
+                        title="Origen"
                         pinColor="blue"
                     />
                     <Marker 
                         coordinate={{ latitude: destination.coords.lat, longitude: destination.coords.lng }}
-                        title="Tu Destino"
+                        title="Destino"
                         pinColor="green"
                     />
                     <Marker 
@@ -111,16 +121,6 @@ export default function StationsScreen() {
                     <Marker 
                         coordinate={{ latitude: routePlan.endStation.lat, longitude: routePlan.endStation.lng }}
                         title={`Baja aquí: ${routePlan.endStation.name}`}
-                    />
-                    {/* Dibuja la ruta del Metropolitano en el mapa */}
-                    <Polyline
-                        coordinates={[
-                            { latitude: routePlan.startStation.lat, longitude: routePlan.startStation.lng },
-                            { latitude: routePlan.endStation.lat, longitude: routePlan.endStation.lng }
-                        ]}
-                        strokeColor={colors.primary} 
-                        strokeWidth={3}
-                        lineDashPattern={[5, 5]}
                     />
                 </MapView>
             </View>
