@@ -1,34 +1,52 @@
-import { View, Text, StyleSheet } from "react-native";
+import React from "react";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { GooglePlacesAutocomplete } from "react-native-google-places-autocomplete";
 import { useNavigation, useRoute } from "@react-navigation/native";
-import { GOOGLE_PLACES_API_KEY } from "@env"; 
-
+import * as Location from 'expo-location';
+import { GOOGLE_PLACES_API_KEY } from "@env";
 import colors from "../../styles/colors";
 import spacing from "../../styles/spacing";
 
 export default function LocationSearchScreen() {
     const navigation = useNavigation();
     const route = useRoute();
+    const { type } = route.params || {};
 
-    const { type } = route.params || {}; 
+    const handleCurrentLocation = async () => {
+        let { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') {
+            alert("Se requiere permiso para acceder a la ubicación");
+            return;
+        }
 
-    const title =
-        type === "origin"
-            ? "Selecciona tu punto de partida"
-            : "Selecciona tu destino";
+        let location = await Location.getCurrentPositionAsync({});
+        navigation.navigate("ExploreMain", {
+            selectedLocation: {
+                type,
+                description: "Mi ubicación actual",
+                location: {
+                    lat: location.coords.latitude,
+                    lng: location.coords.longitude
+                },
+            },
+        });
+    };
+
+    // Datos temporales de favoritos
+    const favs = [
+        { id: '1', name: 'Casa', address: 'Av. Brasil 1234' },
+        { id: '2', name: 'Trabajo', address: 'Canaval y Moreyra' }
+    ];
 
     return (
         <View style={styles.container}>
-            <Text style={styles.title}>{title}</Text>
-
             <GooglePlacesAutocomplete
-                placeholder="Escribe una estación o dirección"
+                placeholder={type === 'origin' ? "Punto de partida" : "Punto de destino"}
                 fetchDetails={true}
                 onPress={(data, details = null) => {
-                    console.log(data, details);
                     navigation.navigate("ExploreMain", {
                         selectedLocation: {
-                            type, 
+                            type,
                             description: data.description,
                             location: details?.geometry?.location,
                         },
@@ -37,47 +55,61 @@ export default function LocationSearchScreen() {
                 query={{
                     key: GOOGLE_PLACES_API_KEY,
                     language: "es",
-                    components: "country:pe",
-                    types: 'geocode',
+                    components: "country:pe", // Mantiene la búsqueda en Perú
+                    location: "-12.046374,-77.042793", // Coordenadas centrales de Lima (Plaza de Armas)
+                    radius: "50000", // Radio de 50km
+                    strictbounds: true,
                 }}
-                nearbyPlacesAPI="GooglePlacesSearch" 
-                debounce={400}
+                styles={{
+                    textInput: styles.input,
+                    listView: styles.listView,
+                    row: styles.row,
+                }}
+                enablePoweredByContainer={false}
 
-                onFail={(error) => console.log("DETALLE ERROR GOOGLE:", error)}
+                renderHeaderComponent={() => (
+                    <View style={styles.header}>
+                        <TouchableOpacity style={styles.actionButton} onPress={handleCurrentLocation}>
+                            <Text style={styles.actionText}>📍 Usar mi ubicación actual</Text>
+                        </TouchableOpacity>
+                        
+                        <View style={styles.favSection}>
+                            <Text style={styles.sectionTitle}>Favoritos recientes</Text>
+                            {favs.map(item => (
+                                <TouchableOpacity 
+                                    key={item.id} 
+                                    style={styles.favItem}
+                                    onPress={() => navigation.navigate("ExploreMain", {
+                                        selectedLocation: { type, description: item.name, location: null }
+                                    })}
+                                >
+                                    <Text style={styles.favName}>⭐ {item.name}</Text>
+                                    <Text style={styles.favAddress}>{item.address}</Text>
+                                </TouchableOpacity>
+                            ))}
+                            <TouchableOpacity onPress={() => navigation.navigate("Favorites")}>
+                                <Text style={styles.seeMore}>Ver todos los favoritos</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                )}
             />
         </View>
     );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        padding: spacing.md,
-        backgroundColor: colors.background,
-    },
-    title: {
-        fontSize: 18,
-        fontWeight: "700",
-        marginBottom: spacing.md,
-        color: colors.textPrimary || '#333',
-        marginTop: spacing.sm,
-    },
-    input: {
-        backgroundColor: colors.white,
-        borderRadius: 10,
-        height: 55,        paddingHorizontal: spacing.md,
-        fontSize: 16,
-        borderWidth: 1,
-        borderColor: colors.grayLight,
-        color: '#000',
-    },
-    list: {
-        backgroundColor: colors.white,
-        borderRadius: 10,
-        marginTop: spacing.sm,
-        elevation: 3,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-    },
+    container: { flex: 1, backgroundColor: colors.background, padding: spacing.md },
+    input: { height: 50, borderRadius: 10, borderWidth: 1, borderColor: colors.grayLight, backgroundColor: '#fff', fontSize: 16 },
+    listView: { marginTop: 10 },
+    header: { backgroundColor: colors.background, marginBottom: 10 },
+    actionButton: { paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: '#eee' },
+    actionText: { color: colors.primary, fontWeight: 'bold', fontSize: 16 },
+    favSection: { marginTop: 15 },
+    sectionTitle: { fontSize: 14, color: colors.grayDark, fontWeight: 'bold', marginBottom: 10 },
+    favItem: { paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
+    favName: { fontSize: 15, fontWeight: '600', color: colors.textPrimary },
+    favAddress: { fontSize: 12, color: colors.gray },
+    seeMore: { color: colors.primary, marginTop: 10, fontSize: 14, fontWeight: '600' },
+    row: { padding: 13, height: 55 },
 });

@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Switch } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Switch, Alert } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 
 import colors from "../../../styles/colors";
@@ -7,18 +6,29 @@ import spacing from "../../../styles/spacing";
 import typography from "../../../styles/typography";
 import globalStyles from "../../../styles/globalStyles";
 
-export default function SearchForm() {
+// Recibimos los datos y funciones desde ExploreScreen
+export default function SearchForm({ 
+    origin, 
+    destination, 
+    onSwap, 
+    isFastestRoute, 
+    setIsFastestRoute,
+    originData,      // Objeto completo {description, coords}
+    destinationData  // Objeto completo {description, coords}
+}) {
     const navigation = useNavigation();
-    
-    const [isFastestRoute, setIsFastestRoute] = useState(false);
-    const [origin, setOrigin] = useState("Desde");
-    const [destination, setDestination] = useState("Hacia");
 
-    // Función para intercambiar origen y destino
-    const handleSwap = () => {
-        const temp = origin;
-        setOrigin(destination);
-        setDestination(temp);
+    const handleSearch = () => {
+        if (origin === "Desde" || destination === "Hacia") {
+            Alert.alert("Atención", "Por favor selecciona un punto de origen y un destino.");
+            return;
+        }
+
+        navigation.navigate("Stations", { 
+            origin: originData, 
+            destination: destinationData, 
+            isFastestRoute 
+        });
     };
 
     return (
@@ -26,59 +36,70 @@ export default function SearchForm() {
             {/* Título */}
             <Text style={[typography.title, styles.mainTitle]}>¿A dónde vas?</Text>
             
-            {/* Contenedor de Inputs con Swap real */}
+            {/* Contenedor de Inputs con Swap */}
             <View style={styles.inputsWrapper}>
                 <View style={styles.inputsColumn}>
+                    {/* Botón de Origen */}
                     <TouchableOpacity 
                         style={styles.input} 
                         onPress={() => navigation.navigate("LocationSearch", { type: 'origin' })}
                     >
-                        <Text style={styles.placeholder}>{origin}</Text>
+                        <Text 
+                            style={[styles.placeholder, origin !== "Desde" && styles.activeText]} 
+                            numberOfLines={1}
+                        >
+                            {origin}
+                        </Text>
                     </TouchableOpacity>
 
+                    {/* Botón de Destino */}
                     <TouchableOpacity 
                         style={styles.input}
                         onPress={() => navigation.navigate("LocationSearch", { type: 'destination' })}
                     >
-                        <Text style={styles.placeholder}>{destination}</Text>
+                        <Text 
+                            style={[styles.placeholder, destination !== "Hacia" && styles.activeText]} 
+                            numberOfLines={1}
+                        >
+                            {destination}
+                        </Text>
                     </TouchableOpacity>
                 </View>
 
-                {/* Botón Swap */}
-                <TouchableOpacity style={styles.swapButton} onPress={handleSwap}>
+                {/* Botón Swap Real */}
+                <TouchableOpacity style={styles.swapButton} onPress={onSwap}>
                     <Text style={styles.swapIcon}>⇅</Text>
                 </TouchableOpacity>
             </View>
 
-            {/* Fecha */}
+            {/* Fecha (Simulada) */}
             <TouchableOpacity style={styles.datePicker}>
-                <Text style={styles.placeholder}>📅 Fecha y hora</Text>
+                <Text style={styles.placeholderText}>📅 Fecha y hora</Text>
             </TouchableOpacity>
 
-            {/* Toggle */}
+            {/* Toggle de Ruta Rápida */}
             <View style={styles.toggleRow}>
                 <Text style={styles.toggleText}>Mostrar ruta más rápida</Text>
                 <Switch
                     trackColor={{ false: colors.grayLight, true: colors.primary + "80" }}
                     thumbColor={isFastestRoute ? colors.primary : "#f4f3f4"}
-                    onValueChange={() => setIsFastestRoute(previousState => !previousState)}
+                    onValueChange={() => setIsFastestRoute(prev => !prev)}
                     value={isFastestRoute}
                 />
             </View>
 
-            {/* Buscar */}
+            {/* Botón de Acción Principal */}
             <TouchableOpacity 
                 style={styles.searchButton}
-                onPress={() => navigation.navigate("Stations", { origin, destination, isFastestRoute })}
+                onPress={handleSearch}
             >
                 <Text style={styles.searchText}>Buscar</Text>
             </TouchableOpacity>
 
             <View style={globalStyles.separator} />
 
-            {/* Favoritos */}
+            {/* Sección de Favoritos */}
             <Text style={styles.sectionTitle}>Favoritos</Text>
-            
             
             <TouchableOpacity style={styles.recentItem}>
                 <Text style={styles.recentText}>⭐ Casa</Text>
@@ -109,7 +130,7 @@ const styles = StyleSheet.create({
     },
     input: {
         backgroundColor: colors.white,
-        padding: spacing.md,
+        paddingHorizontal: spacing.md,
         borderRadius: 10,
         marginVertical: spacing.xs,
         borderWidth: 1,
@@ -121,9 +142,9 @@ const styles = StyleSheet.create({
         position: 'absolute',
         right: 15,
         backgroundColor: colors.primary,
-        width: 36,
-        height: 36,
-        borderRadius: 18,
+        width: 38,
+        height: 38,
+        borderRadius: 19,
         justifyContent: "center",
         alignItems: "center",
         elevation: 4,
@@ -138,9 +159,19 @@ const styles = StyleSheet.create({
         color: colors.gray,
         fontSize: 16,
     },
+    activeText: {
+        color: colors.black || '#000',
+        fontWeight: '500',
+    },
+    placeholderText: {
+        color: colors.gray,
+        fontSize: 16,
+    },
     datePicker: {
         backgroundColor: colors.white,
-        padding: spacing.md,
+        paddingHorizontal: spacing.md,
+        height: 50,
+        justifyContent: 'center',
         borderRadius: 10,
         marginTop: spacing.sm,
         borderWidth: 1,
@@ -158,15 +189,17 @@ const styles = StyleSheet.create({
     },
     searchButton: {
         backgroundColor: colors.primary,
-        padding: spacing.md,
+        height: 55,
         borderRadius: 10,
+        justifyContent: "center",
         alignItems: "center",
         marginBottom: spacing.xl,
+        elevation: 2,
     },
     searchText: {
         color: colors.white,
-        fontSize: 16,
-        fontWeight: "600",
+        fontSize: 18,
+        fontWeight: "700",
     },
     sectionTitle: {
         fontSize: 16,

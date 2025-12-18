@@ -1,0 +1,14 @@
+[
+    { "id": "1", "name": "Terminal Naranjal", "lat": -11.979111, "lng": -77.058911, "district": "Independencia" },
+    { "id": "2", "name": "Estación Izaguirre", "lat": -11.990252, "lng": -77.054944, "district": "Independencia" },
+    { "id": "3", "name": "Estación Tomás Valle", "lat": -12.005889, "lng": -77.050111, "district": "San Martín de Porres" },
+    { "id": "4", "name": "Estación UNI", "lat": -12.023889, "lng": -77.047556, "district": "Rímac" },
+    { "id": "5", "name": "Estación Caquetá", "lat": -12.034722, "lng": -77.041667, "district": "Rímac" },
+    { "id": "6", "name": "Estación Central", "lat": -12.055611, "lng": -77.035811, "district": "Cercado de Lima" },
+    { "id": "7", "name": "Estación Javier Prado", "lat": -12.086411, "lng": -77.029811, "district": "La Victoria" },
+    { "id": "8", "name": "Estación Canaval y Moreyra", "lat": -12.093111, "lng": -77.028611, "district": "San Isidro" },
+    { "id": "9", "name": "Estación Angamos", "lat": -12.112111, "lng": -77.026711, "district": "Miraflores" },
+    { "id": "10", "name": "Estación Benavides", "lat": -12.128889, "lng": -77.022778, "district": "Miraflores" },
+    { "id": "11", "name": "Estación Bulevar", "lat": -12.148333, "lng": -77.021667, "district": "Barranco" },
+    { "id": "12", "name": "Terminal Matellini", "lat": -12.189411, "lng": -77.011911, "district": "Chorrillos" }
+]
