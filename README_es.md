@@ -52,8 +52,23 @@ El sistema se organiza en 4 ejes estratégicos:
 
 ---
 
-## 📦 4. Instalación
-1.  **Clonar el repositorio:** `git clone [URL-REPOSITORIO]`
+## 📦 4. Instalación y Despliegue
+
+Este proyecto utiliza **Expo**, lo que permite una ejecución rápida en dispositivos físicos o emuladores.
+
+### Configuración para Desarrollo
+1.  **Clonar el repositorio:** `git clone https://github.com/radiocat-fanzine/react-native-metropolitano.git`
 2.  **Instalar dependencias:** `npm install`
-3.  **Configurar credenciales:** Añadir configuración en `src/api/firebaseConfig.js`.
-4.  **Iniciar entorno de desarrollo:** `npx expo start -c`
+3.  **Configurar variables de entorno:** Crear un archivo `.env` en la raíz con tus llaves (ver `.env.example` como referencia):
+    ```env
+    EXPO_PUBLIC_FIREBASE_API_KEY=tu_firebase_key
+    EXPO_PUBLIC_GOOGLE_PLACES_API_KEY=tu_google_places_key
+    ```
+4.  **Iniciar con Expo:** `npx expo start -c`  
+    *Escanea el código QR con la app **Expo Go** (Android/iOS) para probarla en tu celular.*
+
+### Probar la aplicación (Android)
+Si deseas probar la versión final sin configurar el entorno de desarrollo, puedes descargar el archivo **APK** directamente aquí:
+* [🔗 Descargar MetroApp APK para Android](https://expo.dev/accounts/radiocat_fanzine/projects/metroapp/builds/9f0e3a29-a91c-4ca1-9bbd-bf7f12045849)
+
+

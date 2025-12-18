@@ -18,10 +18,16 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/LogoMetropolitano_c.png",
         "backgroundColor": "#FFFFFF"
-      }
+      },
+      "package": "com.radiocat_fanzine.metroapp"
     },
     "plugins": [
       "expo-sqlite"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "9dae3c6d-a678-4ef0-831f-2922468fec3e"
+      }
+    }
   }
 }
