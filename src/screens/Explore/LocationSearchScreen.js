@@ -1,9 +1,10 @@
-import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import React, { useEffect, useState } from "react";
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native";
 import { GooglePlacesAutocomplete } from "react-native-google-places-autocomplete";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import * as Location from 'expo-location';
-import { GOOGLE_PLACES_API_KEY } from "@env";
+import { GOOGLE_MAPS_API_KEY } from "@env"; // Asegúrate que el nombre coincida con tu .env
+import { subscribeToFavorites } from "../../services/favoriteService";
 import colors from "../../styles/colors";
 import spacing from "../../styles/spacing";
 
@@ -11,20 +12,28 @@ export default function LocationSearchScreen() {
     const navigation = useNavigation();
     const route = useRoute();
     const { type } = route.params || {};
+    const [favorites, setFavorites] = useState([]);
+
+    // Cargar favoritos reales de Firebase
+    useEffect(() => {
+        const unsubscribe = subscribeToFavorites((list) => {
+            setFavorites(list);
+        });
+        return () => unsubscribe();
+    }, []);
 
     const handleCurrentLocation = async () => {
         let { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') {
-            alert("Se requiere permiso para acceder a la ubicación");
+            alert("Permiso denegado");
             return;
         }
-
         let location = await Location.getCurrentPositionAsync({});
         navigation.navigate("ExploreMain", {
             selectedLocation: {
                 type,
                 description: "Mi ubicación actual",
-                location: {
+                coords: {
                     lat: location.coords.latitude,
                     lng: location.coords.longitude
                 },
@@ -32,84 +41,72 @@ export default function LocationSearchScreen() {
         });
     };
 
-    // Datos temporales de favoritos
-    const favs = [
-        { id: '1', name: 'Casa', address: 'Av. Brasil 1234' },
-        { id: '2', name: 'Trabajo', address: 'Canaval y Moreyra' }
+    // Convertir favoritos al formato de GooglePlacesAutocomplete
+    const predefinedPlaces = [
+        {
+            description: "📍 Usar mi ubicación actual",
+            geometry: { location: { lat: 0, lng: 0 } },
+            isCurrentLocation: true
+        },
+        {
+            description: "🗺️ Seleccionar en el mapa",
+            geometry: { location: { lat: 0, lng: 0 } },
+            isMapPicker: true
+        },
+        ...favorites.map(fav => ({
+            description: `⭐ ${fav.name} - ${fav.address}`,
+            geometry: { location: { lat: fav.lat, lng: fav.lng } },
+            isFavorite: true
+        }))
     ];
 
     return (
         <View style={styles.container}>
             <GooglePlacesAutocomplete
-                placeholder={type === 'origin' ? "Punto de partida" : "Punto de destino"}
+                placeholder={type === 'origin' ? "Desde" : "Hacia"}
                 fetchDetails={true}
+                minLength={0}
                 onPress={(data, details = null) => {
-                    navigation.navigate("ExploreMain", {
-                        selectedLocation: {
-                            type,
-                            description: data.description,
-                            location: details?.geometry?.location,
-                        },
-                    });
+                    if (data.isCurrentLocation) {
+                        handleCurrentLocation();
+                    } else if (data.isMapPicker) {
+                        console.log("Abrir Mapa");
+                    } else {
+                        navigation.navigate("ExploreMain", {
+                            selectedLocation: {
+                                type,
+                                description: data.description,
+                                coords: {
+                                    lat: details?.geometry?.location.lat,
+                                    lng: details?.geometry?.location.lng
+                                },
+                            },
+                        });
+                    }
                 }}
+                predefinedPlaces={predefinedPlaces}
                 query={{
-                    key: GOOGLE_PLACES_API_KEY,
+                    key: GOOGLE_MAPS_API_KEY,
                     language: "es",
-                    components: "country:pe", // Mantiene la búsqueda en Perú
-                    location: "-12.046374,-77.042793", // Coordenadas centrales de Lima (Plaza de Armas)
-                    radius: "50000", // Radio de 50km
-                    strictbounds: true,
+                    components: "country:pe",
+                    location: "-12.046374,-77.042793",
+                    radius: "50000",
                 }}
                 styles={{
                     textInput: styles.input,
                     listView: styles.listView,
                     row: styles.row,
+                    description: { color: colors.textPrimary }
                 }}
                 enablePoweredByContainer={false}
-
-                renderHeaderComponent={() => (
-                    <View style={styles.header}>
-                        <TouchableOpacity style={styles.actionButton} onPress={handleCurrentLocation}>
-                            <Text style={styles.actionText}>📍 Usar mi ubicación actual</Text>
-                        </TouchableOpacity>
-                        
-                        <View style={styles.favSection}>
-                            <Text style={styles.sectionTitle}>Favoritos recientes</Text>
-                            {favs.map(item => (
-                                <TouchableOpacity 
-                                    key={item.id} 
-                                    style={styles.favItem}
-                                    onPress={() => navigation.navigate("ExploreMain", {
-                                        selectedLocation: { type, description: item.name, location: null }
-                                    })}
-                                >
-                                    <Text style={styles.favName}>⭐ {item.name}</Text>
-                                    <Text style={styles.favAddress}>{item.address}</Text>
-                                </TouchableOpacity>
-                            ))}
-                            <TouchableOpacity onPress={() => navigation.navigate("Favorites")}>
-                                <Text style={styles.seeMore}>Ver todos los favoritos</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                )}
             />
         </View>
     );
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.background, padding: spacing.md },
-    input: { height: 50, borderRadius: 10, borderWidth: 1, borderColor: colors.grayLight, backgroundColor: '#fff', fontSize: 16 },
-    listView: { marginTop: 10 },
-    header: { backgroundColor: colors.background, marginBottom: 10 },
-    actionButton: { paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: '#eee' },
-    actionText: { color: colors.primary, fontWeight: 'bold', fontSize: 16 },
-    favSection: { marginTop: 15 },
-    sectionTitle: { fontSize: 14, color: colors.grayDark, fontWeight: 'bold', marginBottom: 10 },
-    favItem: { paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
-    favName: { fontSize: 15, fontWeight: '600', color: colors.textPrimary },
-    favAddress: { fontSize: 12, color: colors.gray },
-    seeMore: { color: colors.primary, marginTop: 10, fontSize: 14, fontWeight: '600' },
-    row: { padding: 13, height: 55 },
+    container: { flex: 1, backgroundColor: colors.white, padding: spacing.md, paddingTop: 40 },
+    input: { height: 50, borderRadius: 10, borderWidth: 1, borderColor: colors.grayLight, paddingHorizontal: 15, fontSize: 16, backgroundColor: '#f9f9f9' },
+    listView: { borderTopWidth: 0, elevation: 5, backgroundColor: 'white', borderRadius: 10 },
+    row: { padding: 15, height: 60, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
 });

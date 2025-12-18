@@ -1,51 +1,73 @@
 import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Modal, TextInput, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { db, auth } from '../../api/firebase';
-import { ref, onValue } from "firebase/database";
+import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
+
+import { saveFavorite, subscribeToFavorites, deleteFavorite } from '../../services/favoriteService';
+
+import { GOOGLE_MAPS_API_KEY } from "@env";
 import colors from '../../styles/colors';
 import spacing from '../../styles/spacing';
 
 export default function FavoritesScreen() {
     const [favorites, setFavorites] = useState([]);
     const [loading, setLoading] = useState(true);
+    
+    // Estados para el Modal de creación
+    const [modalVisible, setModalVisible] = useState(false);
+    const [newName, setNewName] = useState('');
+    const [newAddress, setNewAddress] = useState(null);
 
+    // Escuchar favoritos en tiempo real al cargar la pantalla
     useEffect(() => {
-        const userId = auth.currentUser?.uid;
-        if (!userId) {
-            setLoading(false);
-            return;
-        }
-
-        // Referencia a favoritos en Realtime Database
-        const favRef = ref(db, `users/${userId}/favorites`);
-        
-        const unsub = onValue(favRef, (snapshot) => {
-            const data = snapshot.val();
-            const list = data ? Object.keys(data).map(key => ({ 
-                id: key, 
-                ...data[key] 
-            })) : [];
-            
+        const unsubscribe = subscribeToFavorites((list) => {
             setFavorites(list);
             setLoading(false);
         });
-
-        return () => unsub();
+        return () => unsubscribe(); 
     }, []);
 
-    // Lógica para asignar iconos según nombre
+    // Función para guardar
+    const handleSave = async () => {
+        if (!newName.trim() || !newAddress) {
+            Alert.alert("Campos incompletos", "Por favor ingresa un nombre y busca una dirección.");
+            return;
+        }
+
+        try {
+            await saveFavorite(newName, newAddress.description, newAddress.coords);
+            setModalVisible(false);
+            setNewName('');
+            setNewAddress(null);
+        } catch (error) {
+            Alert.alert("Error", "No se pudo guardar la ubicación.");
+        }
+    };
+
+    // Función para eliminar (se activa con LongPress)
+    const confirmDelete = (item) => {
+        Alert.alert(
+            "Eliminar favorito",
+            `¿Estás seguro de que quieres eliminar "${item.name}"?`,
+            [
+                { text: "Cancelar", style: "cancel" },
+                { text: "Eliminar", style: "destructive", onPress: () => deleteFavorite(item.id) }
+            ]
+        );
+    };
+
     const getIcon = (name) => {
         const lowerName = (name || "").toLowerCase();
         if (lowerName.includes('casa') || lowerName.includes('home')) return '🏠';
         if (lowerName.includes('trabajo') || lowerName.includes('work') || lowerName.includes('oficina')) return '💼';
-        return '⭐'; // Icono por defecto
+        return '⭐';
     };
 
     const renderItem = ({ item }) => (
         <TouchableOpacity 
             style={styles.favCard}
-            onPress={() => console.log("Seleccionado:", item.name)}
+            onPress={() => console.log("Ir a:", item.address)}
+            onLongPress={() => confirmDelete(item)} // Borrar al mantener presionado
         >
             <View style={styles.iconContainer}>
                 <Text style={styles.favIcon}>{getIcon(item.name)}</Text>
@@ -62,16 +84,18 @@ export default function FavoritesScreen() {
 
     return (
         <SafeAreaView style={styles.container}>
+            {/* HEADER */}
             <View style={styles.header}>
-                <Text style={styles.title}>Favoritos</Text>
+                <Text style={styles.title}>Mis Favoritos</Text>
                 <TouchableOpacity 
                     style={styles.addBtn}
-                    onPress={() => console.log("Abrir modal para nuevo favorito")}
+                    onPress={() => setModalVisible(true)}
                 >
                     <Text style={styles.addBtnText}>+ Nuevo</Text>
                 </TouchableOpacity>
             </View>
 
+            {/* Contenido */}
             {loading ? (
                 <View style={styles.center}>
                     <ActivityIndicator size="large" color={colors.primary} />
@@ -79,8 +103,8 @@ export default function FavoritesScreen() {
             ) : favorites.length === 0 ? (
                 <View style={styles.emptyState}>
                     <Text style={styles.emptyIcon}>📍</Text>
-                    <Text style={styles.emptyText}>Aún no tienes lugares guardados.</Text>
-                    <Text style={styles.emptySub}>Guarda tus rutas frecuentes para viajar más rápido.</Text>
+                    <Text style={styles.emptyText}>No hay lugares guardados</Text>
+                    <Text style={styles.emptySub}>Mantén presionada una tarjeta para eliminarla.</Text>
                 </View>
             ) : (
                 <FlatList
@@ -91,113 +115,119 @@ export default function FavoritesScreen() {
                     showsVerticalScrollIndicator={false}
                 />
             )}
+
+            {/* Modal para agregar a favorito */}
+            <Modal
+                visible={modalVisible}
+                animationType="slide"
+                transparent={true}
+                onRequestClose={() => setModalVisible(false)}
+            >
+                <KeyboardAvoidingView 
+                    behavior={Platform.OS === "ios" ? "padding" : "height"}
+                    style={styles.modalOverlay}
+                >
+                    <View style={styles.modalContent}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Nuevo Favorito</Text>
+                            <TouchableOpacity onPress={() => setModalVisible(false)}>
+                                <Text style={styles.closeModal}>Cerrar</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        <TextInput 
+                            style={styles.input}
+                            placeholder="Nombre (ej. Casa)"
+                            value={newName}
+                            onChangeText={setNewName}
+                        />
+
+                        {/* Buscador de Google */}
+                        <View style={styles.searchWrapper}>
+                            <GooglePlacesAutocomplete
+                                placeholder='Buscar dirección en Lima...'
+                                fetchDetails={true}
+                                onPress={(data, details = null) => {
+                                    setNewAddress({
+                                        description: data.description,
+                                        coords: {
+                                            lat: details.geometry.location.lat,
+                                            lng: details.geometry.location.lng
+                                        }
+                                    });
+                                }}
+                                query={{
+                                    key: GOOGLE_MAPS_API_KEY,
+                                    language: 'es',
+                                    components: 'country:pe',
+                                    location: '-12.046374, -77.042793', // Centro de Lima
+                                    radius: '30000',
+                                }}
+                                styles={{
+                                    textInput: styles.searchInput,
+                                    container: { flex: 0 },
+                                    listView: { color: '#000', backgroundColor: '#fff', borderRadius: 10 }
+                                }}
+                                enablePoweredByContainer={false}
+                            />
+                        </View>
+
+                        <TouchableOpacity 
+                            style={[styles.saveBtn, (!newName || !newAddress) && styles.saveBtnDisabled]} 
+                            onPress={handleSave}
+                            disabled={!newName || !newAddress}
+                        >
+                            <Text style={styles.saveBtnText}>Guardar</Text>
+                        </TouchableOpacity>
+                    </View>
+                </KeyboardAvoidingView>
+            </Modal>
         </SafeAreaView>
     );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#fff',
+    container: { flex: 1, backgroundColor: '#fff' },
+    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: spacing.lg, paddingVertical: 20 },
+    title: { fontSize: 28, fontWeight: 'bold', color: '#333' },
+    addBtn: { backgroundColor: colors.primary, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 },
+    addBtnText: { color: '#fff', fontWeight: 'bold' },
+    listContent: { paddingHorizontal: spacing.lg, paddingBottom: 20 },
+    favCard: { 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        padding: 16, 
+        backgroundColor: '#fff', 
+        borderRadius: 16, 
+        marginBottom: 12, 
+        elevation: 3, 
+        shadowColor: '#000', 
+        shadowOffset: { width: 0, height: 2 }, 
+        shadowOpacity: 0.1, 
+        shadowRadius: 4 
     },
-    header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingHorizontal: spacing.lg,
-        paddingTop: 20,
-        paddingBottom: 15,
-    },
-    title: {
-        fontSize: 28,
-        fontWeight: 'bold',
-        color: colors.grayDark || '#333',
-    },
-    addBtn: {
-        backgroundColor: colors.primary,
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        borderRadius: 20,
-        elevation: 2,
-    },
-    addBtnText: {
-        color: '#fff',
-        fontWeight: 'bold',
-        fontSize: 14,
-    },
-    listContent: {
-        paddingHorizontal: spacing.lg,
-        paddingBottom: 20,
-    },
-    favCard: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        padding: 16,
-        backgroundColor: '#fff',
-        borderRadius: 16,
-        marginBottom: 12,
-        elevation: 3,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-    },
-    iconContainer: {
-        width: 48,
-        height: 48,
-        borderRadius: 24,
-        backgroundColor: '#F5F5F5',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 15,
-    },
-    favIcon: {
-        fontSize: 22,
-    },
-    favInfo: {
-        flex: 1,
-    },
-    favName: {
-        fontSize: 16,
-        fontWeight: '700',
-        color: '#1A1A1A',
-    },
-    favAddress: {
-        fontSize: 13,
-        color: '#757575',
-        marginTop: 2,
-    },
-    arrow: {
-        color: '#E0E0E0',
-        fontSize: 18,
-        marginLeft: 10,
-    },
-    center: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    emptyState: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        paddingHorizontal: 40,
-    },
-    emptyIcon: {
-        fontSize: 50,
-        marginBottom: 10,
-        opacity: 0.5,
-    },
-    emptyText: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        textAlign: 'center',
-        color: colors.grayDark,
-    },
-    emptySub: {
-        fontSize: 14,
-        textAlign: 'center',
-        color: colors.gray,
-        marginTop: 8,
-    },
+    iconContainer: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#F5F5F5', justifyContent: 'center', alignItems: 'center', marginRight: 15 },
+    favIcon: { fontSize: 22 },
+    favInfo: { flex: 1 },
+    favName: { fontSize: 16, fontWeight: '700' },
+    favAddress: { fontSize: 13, color: '#757575', marginTop: 2 },
+    arrow: { color: '#E0E0E0', fontSize: 18 },
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40 },
+    emptyIcon: { fontSize: 50, opacity: 0.3 },
+    emptyText: { fontSize: 18, fontWeight: 'bold', marginTop: 10 },
+    emptySub: { fontSize: 14, color: 'gray', textAlign: 'center', marginTop: 5 },
+    
+    // Modal
+    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+    modalContent: { backgroundColor: '#fff', borderTopLeftRadius: 25, borderTopRightRadius: 25, padding: 25, minHeight: 500 },
+    modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+    modalTitle: { fontSize: 22, fontWeight: 'bold' },
+    closeModal: { color: colors.primary, fontWeight: 'bold' },
+    input: { backgroundColor: '#f5f5f5', padding: 15, borderRadius: 12, marginBottom: 15 },
+    searchWrapper: { zIndex: 10, minHeight: 250 },
+    searchInput: { backgroundColor: '#f5f5f5', borderRadius: 12, height: 50 },
+    saveBtn: { backgroundColor: colors.primary, padding: 16, borderRadius: 15, alignItems: 'center', marginTop: 10 },
+    saveBtnDisabled: { backgroundColor: '#ccc' },
+    saveBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 16 }
 });

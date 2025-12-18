@@ -6,20 +6,18 @@ import spacing from "../../../styles/spacing";
 import typography from "../../../styles/typography";
 import globalStyles from "../../../styles/globalStyles";
 
-// Recibimos los datos y funciones desde ExploreScreen
 export default function SearchForm({ 
-    origin, 
-    destination, 
     onSwap, 
     isFastestRoute, 
     setIsFastestRoute,
-    originData,      // Objeto completo {description, coords}
-    destinationData  // Objeto completo {description, coords}
+    originData,     
+    destinationData
 }) {
     const navigation = useNavigation();
 
+    // Lógica de búsqueda
     const handleSearch = () => {
-        if (origin === "Desde" || destination === "Hacia") {
+        if (!originData || !destinationData) {
             Alert.alert("Atención", "Por favor selecciona un punto de origen y un destino.");
             return;
         }
@@ -39,34 +37,41 @@ export default function SearchForm({
             {/* Contenedor de Inputs con Swap */}
             <View style={styles.inputsWrapper}>
                 <View style={styles.inputsColumn}>
-                    {/* Botón de Origen */}
+                    
+                    {/* Botón de Origen (Desde) */}
                     <TouchableOpacity 
                         style={styles.input} 
                         onPress={() => navigation.navigate("LocationSearch", { type: 'origin' })}
                     >
                         <Text 
-                            style={[styles.placeholder, origin !== "Desde" && styles.activeText]} 
+                            style={[
+                                styles.placeholder, 
+                                originData && styles.activeText
+                            ]} 
                             numberOfLines={1}
                         >
-                            {origin}
+                            {originData ? originData.description : "Desde"}
                         </Text>
                     </TouchableOpacity>
 
-                    {/* Botón de Destino */}
+                    {/* Botón de Destino (Hacia) */}
                     <TouchableOpacity 
                         style={styles.input}
                         onPress={() => navigation.navigate("LocationSearch", { type: 'destination' })}
                     >
                         <Text 
-                            style={[styles.placeholder, destination !== "Hacia" && styles.activeText]} 
+                            style={[
+                                styles.placeholder, 
+                                destinationData && styles.activeText
+                            ]} 
                             numberOfLines={1}
                         >
-                            {destination}
+                            {destinationData ? destinationData.description : "Hacia"}
                         </Text>
                     </TouchableOpacity>
                 </View>
 
-                {/* Botón Swap Real */}
+                {/* Botón Swap */}
                 <TouchableOpacity style={styles.swapButton} onPress={onSwap}>
                     <Text style={styles.swapIcon}>⇅</Text>
                 </TouchableOpacity>
@@ -93,20 +98,19 @@ export default function SearchForm({
                 style={styles.searchButton}
                 onPress={handleSearch}
             >
-                <Text style={styles.searchText}>Buscar</Text>
+                <Text style={styles.searchText}>Buscar Ruta</Text>
             </TouchableOpacity>
 
             <View style={globalStyles.separator} />
 
-            {/* Sección de Favoritos */}
+            {/* Sección de Favoritos Rápidos */}
             <Text style={styles.sectionTitle}>Favoritos</Text>
             
-            <TouchableOpacity style={styles.recentItem}>
-                <Text style={styles.recentText}>⭐ Casa</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.recentItem}>
-                <Text style={styles.recentText}>⭐ Trabajo</Text>
+            <TouchableOpacity 
+                style={styles.recentItem}
+                onPress={() => navigation.navigate("Favorites")}
+            >
+                <Text style={styles.recentText}>⭐ Ir a mis favoritos</Text>
             </TouchableOpacity>
         </View>
     );
@@ -131,12 +135,17 @@ const styles = StyleSheet.create({
     input: {
         backgroundColor: colors.white,
         paddingHorizontal: spacing.md,
-        borderRadius: 10,
+        borderRadius: 12,
         marginVertical: spacing.xs,
         borderWidth: 1,
         borderColor: colors.grayLight,
         height: 55,
-        justifyContent: 'center'
+        justifyContent: 'center',
+        elevation: 1,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 2,
     },
     swapButton: {
         position: 'absolute',
@@ -149,6 +158,8 @@ const styles = StyleSheet.create({
         alignItems: "center",
         elevation: 4,
         zIndex: 10,
+        borderWidth: 2,
+        borderColor: colors.white,
     },
     swapIcon: {
         color: colors.white,
@@ -160,7 +171,7 @@ const styles = StyleSheet.create({
         fontSize: 16,
     },
     activeText: {
-        color: colors.black || '#000',
+        color: colors.black || '#1A1A1A',
         fontWeight: '500',
     },
     placeholderText: {
@@ -172,7 +183,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: spacing.md,
         height: 50,
         justifyContent: 'center',
-        borderRadius: 10,
+        borderRadius: 12,
         marginTop: spacing.sm,
         borderWidth: 1,
         borderColor: colors.grayLight,
@@ -190,11 +201,11 @@ const styles = StyleSheet.create({
     searchButton: {
         backgroundColor: colors.primary,
         height: 55,
-        borderRadius: 10,
+        borderRadius: 12,
         justifyContent: "center",
         alignItems: "center",
         marginBottom: spacing.xl,
-        elevation: 2,
+        elevation: 3,
     },
     searchText: {
         color: colors.white,
@@ -215,6 +226,7 @@ const styles = StyleSheet.create({
     },
     recentText: {
         fontSize: 15,
-        color: colors.grayDark,
+        color: colors.primary,
+        fontWeight: '500',
     },
 });

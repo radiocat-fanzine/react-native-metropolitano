@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, Linking, Pla
 import MapView, { Marker, Polyline } from "react-native-maps";
 import { useRoute, useNavigation } from "@react-navigation/native";
 
-import stationsData from "../../../data/stations.json"; 
+import stationsData from "../../data/stations.json"; 
 import colors from "../../styles/colors";
 import spacing from "../../styles/spacing";
 
