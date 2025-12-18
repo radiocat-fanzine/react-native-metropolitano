@@ -71,4 +71,10 @@ Este proyecto utiliza **Expo**, lo que permite una ejecución rápida en disposi
 Si deseas probar la versión final sin configurar el entorno de desarrollo, puedes descargar el archivo **APK** directamente aquí:
 * [🔗 Descargar MetroApp APK para Android](https://expo.dev/accounts/radiocat_fanzine/projects/metroapp/builds/9f0e3a29-a91c-4ca1-9bbd-bf7f12045849)
 
+O
+
+Puedes descargarla desde nuestra sección de lanzamientos:
+* [🔗 Descargar MetroApp APK (v1.0.0)](https://github.com/radiocat-fanzine/react-native-metropolitano/releases/tag/v1.0.0)
+
+
 

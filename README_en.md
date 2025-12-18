@@ -70,3 +70,8 @@ This project is built using **Expo**, enabling fast execution on physical device
 ### Direct Demo (Android)
 If you wish to test the final version without setting up the development environment, you can download the **APK** file directly here:
 * [🔗 Download MetroApp APK for Android](https://expo.dev/accounts/radiocat_fanzine/projects/metroapp/builds/9f0e3a29-a91c-4ca1-9bbd-bf7f12045849)
+
+OR
+
+You can download it from our releases section:
+* [🔗 Download MetroApp APK (v1.0.0)](https://github.com/radiocat-fanzine/react-native-metropolitano/releases/tag/v1.0.0)
