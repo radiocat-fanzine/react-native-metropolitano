@@ -9,7 +9,8 @@ export default function SearchForm({
     isFastestRoute, 
     setIsFastestRoute,
     originData,     
-    destinationData
+    destinationData,
+    onClear
 }) {
     const navigation = useNavigation();
 
@@ -28,7 +29,20 @@ export default function SearchForm({
 
     return (
         <View style={styles.container}>
-            <Text style={[typography.title, styles.mainTitle]}>Planifica tu viaje</Text>
+            {/* Header con Botón de Limpiar */}
+            <View style={styles.headerRow}>
+                <Text style={[typography.title, styles.mainTitle]}>Planifica tu viaje</Text>
+                
+                {(originData || destinationData) && (
+                    <TouchableOpacity 
+                        onPress={onClear} 
+                        style={styles.clearButton}
+                        activeOpacity={0.6}
+                    >
+                        <Text style={styles.clearText}>✕ Limpiar</Text>
+                    </TouchableOpacity>
+                )}
+            </View>
             
             <View style={styles.inputsWrapper}>
                 <View style={styles.inputsColumn}>
@@ -62,9 +76,9 @@ export default function SearchForm({
             </View>
 
             <View style={styles.toggleRow}>
-                <View>
+                <View style={styles.toggleTextContainer}>
                     <Text style={styles.toggleTitle}>⚡ Ruta más rápida</Text>
-                    <Text style={styles.toggleSubtitle}>Evita esperas y llega antes a tu destino</Text>
+                    <Text style={styles.toggleSubtitle}>Evita esperas y llega antes</Text>
                 </View>
                 <Switch
                     trackColor={{ false: "#D1D1D1", true: colors.primary + "60" }}
@@ -93,7 +107,24 @@ export default function SearchForm({
 
 const styles = StyleSheet.create({
     container: { padding: spacing.md, backgroundColor: colors.background },
-    mainTitle: { marginBottom: spacing.lg, fontSize: 24, fontWeight: '800', color: colors.primary },
+    headerRow: { 
+        flexDirection: 'row', 
+        justifyContent: 'space-between', 
+        alignItems: 'center',
+        marginBottom: spacing.md 
+    },
+    mainTitle: { fontSize: 24, fontWeight: '800', color: colors.primary },
+    clearButton: {
+        backgroundColor: '#F1F5F9',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 20,
+    },
+    clearText: {
+        color: '#64748B',
+        fontSize: 12,
+        fontWeight: '700',
+    },
     inputsWrapper: { flexDirection: 'row', alignItems: 'center' },
     inputsColumn: { flex: 1 },
     input: {
@@ -131,11 +162,12 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "center",
-        marginVertical: 25,
+        marginVertical: 20,
         paddingHorizontal: 5,
     },
-    toggleTitle: { fontSize: 18, fontWeight: '700', color: '#333' },
-    toggleSubtitle: { fontSize: 16, color: '#888' },
+    toggleTextContainer: { flex: 0.8 },
+    toggleTitle: { fontSize: 17, fontWeight: '700', color: '#333' },
+    toggleSubtitle: { fontSize: 14, color: '#888' },
     searchButton: {
         backgroundColor: colors.primary,
         height: 60,
@@ -143,13 +175,10 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         alignItems: "center",
         elevation: 4,
-        shadowColor: colors.primary,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
     },
     searchText: { color: colors.white, fontSize: 18, fontWeight: "800" },
     footerSection: { marginTop: 16 },
-    sectionTitle: { fontSize: 20, fontWeight: "700", color: '#333', marginBottom: 16, marginTop: 10 },
-    recentItem: { paddingVertical: 16, backgroundColor: '#eeeeeeff', borderRadius: 12, paddingHorizontal: 15 },
+    sectionTitle: { fontSize: 20, fontWeight: "700", color: '#333', marginBottom: 12, marginTop: 10 },
+    recentItem: { paddingVertical: 16, backgroundColor: '#F1F5F9', borderRadius: 12, paddingHorizontal: 15 },
     recentText: { fontSize: 16, color: colors.primary, fontWeight: '600' },
 });

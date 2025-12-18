@@ -34,7 +34,7 @@ export default function ExploreScreen() {
         }
     }, []);
 
-    // Recibe cambios y guarda permanentemente
+    // Recibe cambios del MapPicker o LocationSearch y guarda permanentemente
     useEffect(() => {
         if (route.params?.selectedLocation) {
             const { type, description, location } = route.params.selectedLocation;
@@ -62,6 +62,21 @@ export default function ExploreScreen() {
         }
     };
 
+    // Funcion para limpiar el formulario
+    const handleClearForm = () => {
+        // Limpia estados visuales
+        setOrigin(null);
+        setDestination(null);
+
+        // Limpia SQLite al recargar
+        try {
+            saveSearchState('origin', null, null, null);
+            saveSearchState('destination', null, null, null);
+        } catch (error) {
+            console.log("Error limpiando caché:", error);
+        }
+    };
+
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: colors.background || '#fff' }}>
             <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
@@ -69,6 +84,7 @@ export default function ExploreScreen() {
                     originData={origin}
                     destinationData={destination}
                     onSwap={handleSwap}
+                    onClear={handleClearForm}
                     isFastestRoute={isFastestRoute}
                     setIsFastestRoute={setIsFastestRoute}
                 />
