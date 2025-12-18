@@ -1,4 +1,5 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import { View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -7,10 +8,23 @@ import HomeScreen from "../screens/Main/HomeScreen";
 import FavoritesScreen from "../screens/Main/FavoritesScreen";
 import ProfileScreen from "../screens/Main/ProfileScreen";
 import ExploreNavigator from "./ExploreNavigator";
+import MapPickerScreen from '../screens/Explore/MapPickerScreen';
 
 import { colors } from "../styles";
 
+// Navegadores
+const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
+
+// Stack para Favoritos
+function FavoritesStack() {
+    return (
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="FavoritesMain" component={FavoritesScreen} />
+            <Stack.Screen name="MapPickerScreen" component={MapPickerScreen} />
+        </Stack.Navigator>
+    );
+}
 
 const icons = {
     Home: "home",
@@ -69,7 +83,7 @@ export default function MainNavigator() {
             />
             <Tab.Screen 
                 name="Favorites" 
-                component={FavoritesScreen} 
+                component={FavoritesStack}
                 options={{ tabBarLabel: "Favoritos" }}
             />
             <Tab.Screen 

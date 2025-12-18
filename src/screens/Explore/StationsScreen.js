@@ -1,7 +1,9 @@
-import { useMemo } from "react";
+import React, { useMemo, useRef } from "react";
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, Linking, Platform, Dimensions } from "react-native";
-import MapView, { Marker, Polyline } from "react-native-maps";
+import MapView, { Marker } from "react-native-maps";
+import MapViewDirections from 'react-native-maps-directions';
 import { useRoute, useNavigation } from "@react-navigation/native";
+import { GOOGLE_PLACES_API_KEY } from "@env";
 
 import stationsData from "../../data/stations.json"; 
 import colors from "../../styles/colors";
@@ -12,8 +14,10 @@ const { width, height } = Dimensions.get("window");
 export default function StationsScreen() {
     const route = useRoute();
     const navigation = useNavigation();
+    const mapRef = useRef(null);
     const { origin, destination } = route.params || {};
 
+    // Función de cálculo de distancia
     const calculateDistance = (lat1, lon1, lat2, lon2) => {
         const R = 6371; 
         const dLat = (lat2 - lat1) * (Math.PI / 180);
@@ -35,7 +39,8 @@ export default function StationsScreen() {
     };
 
     const routePlan = useMemo(() => {
-        if (!origin?.location || !destination?.location) return null;
+        if (!origin?.location?.lat || !destination?.location?.lat) return null;
+
         const sortedByOrigin = stationsData.map(s => ({
             ...s,
             dist: calculateDistance(origin.location.lat, origin.location.lng, s.lat, s.lng)
@@ -53,31 +58,59 @@ export default function StationsScreen() {
         };
     }, [origin, destination]);
 
-    if (!routePlan) return null;
+    if (!routePlan) {
+        return (
+            <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+                <Text>Cargando plan de ruta...</Text>
+            </View>
+        );
+    }
 
     return (
         <View style={styles.container}>
             {/* Mapa */}
             <View style={styles.mapContainer}>
                 <MapView
+                    ref={mapRef}
                     style={styles.map}
                     initialRegion={{
                         latitude: (origin.location.lat + destination.location.lat) / 2,
                         longitude: (origin.location.lng + destination.location.lng) / 2,
-                        latitudeDelta: Math.abs(origin.location.lat - destination.location.lat) * 2.5,
-                        longitudeDelta: Math.abs(origin.location.lng - destination.location.lng) * 2.5,
+                        latitudeDelta: 0.1,
+                        longitudeDelta: 0.1,
                     }}
                 >
-                    <Polyline
-                        coordinates={[
-                            { latitude: routePlan.startStation.lat, longitude: routePlan.startStation.lng },
-                            { latitude: routePlan.endStation.lat, longitude: routePlan.endStation.lng }
-                        ]}
-                        strokeColor={colors.primary}
+                    <MapViewDirections
+                        origin={{ 
+                            latitude: parseFloat(routePlan.startStation.lat), 
+                            longitude: parseFloat(routePlan.startStation.lng) 
+                        }}
+                        destination={{ 
+                            latitude: parseFloat(routePlan.endStation.lat), 
+                            longitude: parseFloat(routePlan.endStation.lng) 
+                        }}
+                        apikey={GOOGLE_PLACES_API_KEY}
                         strokeWidth={4}
+                        strokeColor={colors.primary}
+                        mode="DRIVING"
+                        onReady={(result) => {
+                            if (mapRef.current) {
+                                mapRef.current.fitToCoordinates(result.coordinates, {
+                                    edgePadding: { right: 50, bottom: 50, left: 50, top: 50 },
+                                    animated: true,
+                                });
+                            }
+                        }}
+                        onError={(errorMessage) => {
+                            console.log("Error en Directions API: ", errorMessage);
+                        }}
                     />
+
+                    {/* Marcadores de Usuario */}
                     <Marker coordinate={{ latitude: origin.location.lat, longitude: origin.location.lng }} pinColor="blue" title="Tu origen" />
                     <Marker coordinate={{ latitude: destination.location.lat, longitude: destination.location.lng }} pinColor="green" title="Tu destino" />
+                    
+                    {/* Marcadores de Estaciones */}
                     <Marker coordinate={{ latitude: routePlan.startStation.lat, longitude: routePlan.startStation.lng }} title="Sube aquí" />
                     <Marker coordinate={{ latitude: routePlan.endStation.lat, longitude: routePlan.endStation.lng }} title="Baja aquí" />
                 </MapView>
@@ -113,7 +146,7 @@ export default function StationsScreen() {
                 </TouchableOpacity>
             </View>
 
-            {/* Contenedor de Estaciones Cercanas */}
+            {/* Listado de Estaciones Cercanas */}
             <View style={styles.nearbyCard}>
                 <Text style={styles.sectionTitle}>Estaciones cercanas adicionales</Text>
                 <FlatList
@@ -167,7 +200,6 @@ const styles = StyleSheet.create({
         alignItems: 'center'
     },
     btnMapsText: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
-    
     nearbyCard: {
         flex: 1,
         marginTop: 20,
@@ -176,8 +208,6 @@ const styles = StyleSheet.create({
         padding: 15,
         backgroundColor: '#fff',
         borderRadius: 20,
-        borderWidth: Platform.OS === 'ios' ? 0.5 : 0,
-        borderColor: '#C6C6C8',
         elevation: 3,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
