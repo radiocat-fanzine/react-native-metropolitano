@@ -3,6 +3,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import ExploreScreen from "../screens/Explore/ExploreScreen";
 import StationsScreen from "../screens/Explore/StationsScreen";
 import RouteDetailScreen from "../screens/Explore/RouteDetailScreen";
+import LocationSearchScreen from "../screens/Explore/LocationSearchScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -13,6 +14,11 @@ export default function ExploreNavigator() {
                 name="ExploreMain"
                 component={ExploreScreen}
                 options={{ title: "Explora" }}
+            />
+            <Stack.Screen
+                name="LocationSearch"
+                component={LocationSearchScreen}
+                options={{ title: "Buscar ubicación" }}
             />
             <Stack.Screen
                 name="Stations"
