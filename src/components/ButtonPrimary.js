@@ -1,20 +1,20 @@
 import { TouchableOpacity, Text, StyleSheet } from "react-native";
 import { colors, spacing, typography } from "../styles";
 
-export default function ButtonPrimary({ title, onPress, style, disabled }) {
+export default function ButtonPrimary({ title, onPress, style, textStyle, disabled }) {
     return (
         <TouchableOpacity
-        onPress={onPress}
-        style={[styles.button, style, disabled && styles.disabled]}
-        activeOpacity={0.8}
-        disabled={disabled}
+            onPress={onPress}
+            style={[styles.button, style, disabled && styles.disabled]}
+            activeOpacity={0.8}
+            disabled={disabled}
         >
-        <Text style={styles.text}>{title}</Text>
+            <Text style={[styles.text, textStyle]}>{title}</Text>
         </TouchableOpacity>
     );
-    }
+}
 
-    const styles = StyleSheet.create({
+const styles = StyleSheet.create({
     button: {
         backgroundColor: colors.primary,
         paddingVertical: spacing.md,

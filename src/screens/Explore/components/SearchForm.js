@@ -1,10 +1,8 @@
 import { View, Text, StyleSheet, TouchableOpacity, Switch, Alert } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-
 import colors from "../../../styles/colors";
 import spacing from "../../../styles/spacing";
 import typography from "../../../styles/typography";
-import globalStyles from "../../../styles/globalStyles";
 
 export default function SearchForm({ 
     onSwap, 
@@ -15,10 +13,9 @@ export default function SearchForm({
 }) {
     const navigation = useNavigation();
 
-    // Lógica de búsqueda
     const handleSearch = () => {
         if (!originData || !destinationData) {
-            Alert.alert("Atención", "Por favor selecciona un punto de origen y un destino.");
+            Alert.alert("Atención", "Selecciona origen y destino para calcular la mejor ruta.");
             return;
         }
 
@@ -31,202 +28,128 @@ export default function SearchForm({
 
     return (
         <View style={styles.container}>
-            {/* Título */}
-            <Text style={[typography.title, styles.mainTitle]}>¿A dónde vas?</Text>
+            <Text style={[typography.title, styles.mainTitle]}>Planifica tu viaje</Text>
             
-            {/* Contenedor de Inputs con Swap */}
             <View style={styles.inputsWrapper}>
                 <View style={styles.inputsColumn}>
-                    
-                    {/* Botón de Origen (Desde) */}
+                    {/* Input Origen */}
                     <TouchableOpacity 
-                        style={styles.input} 
+                        style={[styles.input, originData && styles.inputActive]} 
                         onPress={() => navigation.navigate("LocationSearch", { type: 'origin' })}
                     >
-                        <Text 
-                            style={[
-                                styles.placeholder, 
-                                originData && styles.activeText
-                            ]} 
-                            numberOfLines={1}
-                        >
-                            {originData ? originData.description : "Desde"}
+                        <Text style={styles.label}>Desde</Text>
+                        <Text style={[styles.valueText, originData && styles.activeValue]} numberOfLines={1}>
+                            {originData ? originData.description : "Seleccionar origen"}
                         </Text>
                     </TouchableOpacity>
 
-                    {/* Botón de Destino (Hacia) */}
+                    {/* Input Destino */}
                     <TouchableOpacity 
-                        style={styles.input}
+                        style={[styles.input, destinationData && styles.inputActive]}
                         onPress={() => navigation.navigate("LocationSearch", { type: 'destination' })}
                     >
-                        <Text 
-                            style={[
-                                styles.placeholder, 
-                                destinationData && styles.activeText
-                            ]} 
-                            numberOfLines={1}
-                        >
-                            {destinationData ? destinationData.description : "Hacia"}
+                        <Text style={styles.label}>Hacia</Text>
+                        <Text style={[styles.valueText, destinationData && styles.activeValue]} numberOfLines={1}>
+                            {destinationData ? destinationData.description : "¿A dónde vas?"}
                         </Text>
                     </TouchableOpacity>
                 </View>
 
                 {/* Botón Swap */}
-                <TouchableOpacity style={styles.swapButton} onPress={onSwap}>
+                <TouchableOpacity style={styles.swapButton} onPress={onSwap} activeOpacity={0.7}>
                     <Text style={styles.swapIcon}>⇅</Text>
                 </TouchableOpacity>
             </View>
 
-            {/* Fecha (Simulada) */}
-            <TouchableOpacity style={styles.datePicker}>
-                <Text style={styles.placeholderText}>📅 Fecha y hora</Text>
-            </TouchableOpacity>
-
-            {/* Toggle de Ruta Rápida */}
             <View style={styles.toggleRow}>
-                <Text style={styles.toggleText}>Mostrar ruta más rápida</Text>
+                <View>
+                    <Text style={styles.toggleTitle}>⚡ Ruta más rápida</Text>
+                    <Text style={styles.toggleSubtitle}>Evita esperas y llega antes a tu destino</Text>
+                </View>
                 <Switch
-                    trackColor={{ false: colors.grayLight, true: colors.primary + "80" }}
+                    trackColor={{ false: "#D1D1D1", true: colors.primary + "60" }}
                     thumbColor={isFastestRoute ? colors.primary : "#f4f3f4"}
                     onValueChange={() => setIsFastestRoute(prev => !prev)}
                     value={isFastestRoute}
                 />
             </View>
 
-            {/* Botón de Acción Principal */}
-            <TouchableOpacity 
-                style={styles.searchButton}
-                onPress={handleSearch}
-            >
-                <Text style={styles.searchText}>Buscar Ruta</Text>
+            <TouchableOpacity style={styles.searchButton} onPress={handleSearch}>
+                <Text style={styles.searchText}>Buscar mejores rutas</Text>
             </TouchableOpacity>
 
-            <View style={globalStyles.separator} />
-
-            {/* Sección de Favoritos Rápidos */}
-            <Text style={styles.sectionTitle}>Favoritos</Text>
-            
-            <TouchableOpacity 
-                style={styles.recentItem}
-                onPress={() => navigation.navigate("Favorites")}
-            >
-                <Text style={styles.recentText}>⭐ Ir a mis favoritos</Text>
-            </TouchableOpacity>
+            <View style={styles.footerSection}>
+                <Text style={styles.sectionTitle}>⭐ Favoritos</Text>
+                <TouchableOpacity 
+                    style={styles.recentItem}
+                    onPress={() => navigation.navigate("Favorites")}
+                >
+                    <Text style={styles.recentText}>Guarda tus rutas frecuentes </Text>
+                </TouchableOpacity>
+            </View>
         </View>
     );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        padding: spacing.lg,
-        backgroundColor: colors.background,
-    },
-    mainTitle: {
-        marginBottom: spacing.md,
-    },
-    inputsWrapper: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        position: 'relative',
-    },
-    inputsColumn: {
-        flex: 1,
-    },
+    container: { padding: spacing.md, backgroundColor: colors.background },
+    mainTitle: { marginBottom: spacing.lg, fontSize: 24, fontWeight: '800', color: colors.primary },
+    inputsWrapper: { flexDirection: 'row', alignItems: 'center' },
+    inputsColumn: { flex: 1 },
     input: {
         backgroundColor: colors.white,
         paddingHorizontal: spacing.md,
-        borderRadius: 12,
-        marginVertical: spacing.xs,
+        paddingVertical: 10,
+        borderRadius: 16,
+        marginVertical: 6,
         borderWidth: 1,
-        borderColor: colors.grayLight,
-        height: 55,
+        borderColor: '#E8E8E8',
+        height: 70,
         justifyContent: 'center',
-        elevation: 1,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 2,
+        elevation: 2,
     },
+    inputActive: { borderColor: colors.primary + "40", backgroundColor: '#fff' },
+    label: { fontSize: 11, color: colors.primary, fontWeight: '700', textTransform: 'uppercase', marginBottom: 2 },
+    valueText: { fontSize: 16, color: '#999' },
+    activeValue: { color: '#333', fontWeight: '600' },
     swapButton: {
         position: 'absolute',
         right: 15,
         backgroundColor: colors.primary,
-        width: 38,
-        height: 38,
-        borderRadius: 19,
+        width: 44,
+        height: 44,
+        borderRadius: 22,
         justifyContent: "center",
         alignItems: "center",
-        elevation: 4,
+        elevation: 5,
         zIndex: 10,
-        borderWidth: 2,
+        borderWidth: 3,
         borderColor: colors.white,
     },
-    swapIcon: {
-        color: colors.white,
-        fontSize: 20,
-        fontWeight: 'bold'
-    },
-    placeholder: {
-        color: colors.gray,
-        fontSize: 16,
-    },
-    activeText: {
-        color: colors.black || '#1A1A1A',
-        fontWeight: '500',
-    },
-    placeholderText: {
-        color: colors.gray,
-        fontSize: 16,
-    },
-    datePicker: {
-        backgroundColor: colors.white,
-        paddingHorizontal: spacing.md,
-        height: 50,
-        justifyContent: 'center',
-        borderRadius: 12,
-        marginTop: spacing.sm,
-        borderWidth: 1,
-        borderColor: colors.grayLight,
-    },
+    swapIcon: { color: colors.white, fontSize: 22, fontWeight: 'bold' },
     toggleRow: {
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "center",
-        marginVertical: spacing.lg,
+        marginVertical: 25,
+        paddingHorizontal: 5,
     },
-    toggleText: {
-        fontSize: 16,
-        color: colors.grayDark,
-    },
+    toggleTitle: { fontSize: 18, fontWeight: '700', color: '#333' },
+    toggleSubtitle: { fontSize: 16, color: '#888' },
     searchButton: {
         backgroundColor: colors.primary,
-        height: 55,
-        borderRadius: 12,
+        height: 60,
+        borderRadius: 18,
         justifyContent: "center",
         alignItems: "center",
-        marginBottom: spacing.xl,
-        elevation: 3,
+        elevation: 4,
+        shadowColor: colors.primary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
     },
-    searchText: {
-        color: colors.white,
-        fontSize: 18,
-        fontWeight: "700",
-    },
-    sectionTitle: {
-        fontSize: 16,
-        fontWeight: "600",
-        color: colors.grayDark,
-        marginTop: spacing.md,
-        marginBottom: spacing.sm,
-    },
-    recentItem: {
-        paddingVertical: spacing.md,
-        borderBottomWidth: 0.5,
-        borderBottomColor: colors.grayLight,
-    },
-    recentText: {
-        fontSize: 15,
-        color: colors.primary,
-        fontWeight: '500',
-    },
+    searchText: { color: colors.white, fontSize: 18, fontWeight: "800" },
+    footerSection: { marginTop: 16 },
+    sectionTitle: { fontSize: 20, fontWeight: "700", color: '#333', marginBottom: 16, marginTop: 10 },
+    recentItem: { paddingVertical: 16, backgroundColor: '#eeeeeeff', borderRadius: 12, paddingHorizontal: 15 },
+    recentText: { fontSize: 16, color: colors.primary, fontWeight: '600' },
 });

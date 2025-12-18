@@ -1,8 +1,9 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { auth, db } from "../api/firebase";
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "firebase/auth"; // Añadido signOut
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { ref, set, get } from "firebase/database";
-import Toast from 'react-native-toast-message'; // Importación necesaria
+import Toast from 'react-native-toast-message';
+import { saveUserSession, deleteUserSession } from "../api/sqlite"; 
 
 /* REGISTRO */
 export const registerUser = createAsyncThunk(
@@ -15,6 +16,9 @@ export const registerUser = createAsyncThunk(
 
             const userData = { uid, name, email, cardCode, saldo: 0 };
             await set(ref(db, `users/${uid}`), userData);
+
+            saveUserSession(uid, email, name, '', cardCode); 
+
             return userData;
         } catch (error) {
             return rejectWithValue(error.message);
@@ -30,7 +34,15 @@ export const loginUser = createAsyncThunk(
             const userCredential = await signInWithEmailAndPassword(auth, email, password);
             const uid = userCredential.user.uid;
             const snapshot = await get(ref(db, `users/${uid}`));
-            return { uid, ...snapshot.val() };
+            
+            if (!snapshot.exists()) throw new Error("Datos de usuario no encontrados");
+            
+            const data = snapshot.val();
+            const userData = { uid, ...data };
+
+            saveUserSession(uid, email, data.name || '', '', data.cardCode || '');
+
+            return userData;
         } catch (error) {
             return rejectWithValue(error.message);
         }
@@ -44,7 +56,6 @@ export const rechargeSaldo = createAsyncThunk(
         try {
             const userRef = ref(db, `users/${uid}`);
             const snapshot = await get(userRef);
-
             if (!snapshot.exists()) throw new Error("Usuario no encontrado");
 
             const userData = snapshot.val();
@@ -70,7 +81,9 @@ const userSlice = createSlice({
             state.user = action.payload;
         },
         logout(state) {
-            signOut(auth); // Cierra sesión en Firebase
+            signOut(auth); 
+            deleteUserSession(); 
+            
             state.user = null;
             Toast.show({
                 type: 'info',
@@ -81,46 +94,25 @@ const userSlice = createSlice({
     },
     extraReducers: (builder) => {
         builder
-            // Registro
+            .addCase(registerUser.pending, (state) => { state.loading = true; })
             .addCase(registerUser.fulfilled, (state, action) => {
                 state.loading = false;
                 state.user = action.payload;
-                Toast.show({
-                    type: 'success',
-                    text1: '¡Bienvenido!',
-                    text2: 'Cuenta creada exitosamente.'
-                });
+                Toast.show({ type: 'success', text1: '¡Bienvenido!' });
             })
-            // Login
+            .addCase(loginUser.pending, (state) => { state.loading = true; })
             .addCase(loginUser.fulfilled, (state, action) => {
                 state.loading = false;
                 state.user = action.payload;
-                Toast.show({
-                    type: 'success',
-                    text1: 'Sesión iniciada',
-                    text2: `Hola de nuevo, ${action.payload.name}`
-                });
+                Toast.show({ type: 'success', text1: 'Sesión iniciada' });
             })
             .addCase(loginUser.rejected, (state, action) => {
                 state.loading = false;
                 state.error = action.payload;
-                Toast.show({
-                    type: 'error',
-                    text1: 'Error de acceso',
-                    text2: 'Credenciales incorrectas.'
-                });
+                Toast.show({ type: 'error', text1: 'Error', text2: action.payload });
             })
-            // Recarga
             .addCase(rechargeSaldo.fulfilled, (state, action) => {
-                if (state.user) {
-                    state.user.saldo = action.payload.newSaldo;
-                }
-                Toast.show({
-                    type: 'success',
-                    text1: '¡Recarga exitosa!',
-                    text2: `Se han añadido S/ ${action.payload.amount}.00 a tu saldo`,
-                    position: 'bottom'
-                });
+                if (state.user) state.user.saldo = action.payload.newSaldo;
             });
     },
 });

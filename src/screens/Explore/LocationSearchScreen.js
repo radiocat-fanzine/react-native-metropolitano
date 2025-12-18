@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native";
+import { useEffect, useState, useMemo } from "react";
+import { View, StyleSheet, Alert, Text } from "react-native";
 import { GooglePlacesAutocomplete } from "react-native-google-places-autocomplete";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import * as Location from 'expo-location';
-import { GOOGLE_MAPS_API_KEY } from "@env"; // Asegúrate que el nombre coincida con tu .env
+import { GOOGLE_PLACES_API_KEY } from "@env";
 import { subscribeToFavorites } from "../../services/favoriteService";
 import colors from "../../styles/colors";
 import spacing from "../../styles/spacing";
@@ -14,35 +14,14 @@ export default function LocationSearchScreen() {
     const { type } = route.params || {};
     const [favorites, setFavorites] = useState([]);
 
-    // Cargar favoritos reales de Firebase
     useEffect(() => {
         const unsubscribe = subscribeToFavorites((list) => {
-            setFavorites(list);
+            setFavorites(list || []);
         });
         return () => unsubscribe();
     }, []);
 
-    const handleCurrentLocation = async () => {
-        let { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== 'granted') {
-            alert("Permiso denegado");
-            return;
-        }
-        let location = await Location.getCurrentPositionAsync({});
-        navigation.navigate("ExploreMain", {
-            selectedLocation: {
-                type,
-                description: "Mi ubicación actual",
-                coords: {
-                    lat: location.coords.latitude,
-                    lng: location.coords.longitude
-                },
-            },
-        });
-    };
-
-    // Convertir favoritos al formato de GooglePlacesAutocomplete
-    const predefinedPlaces = [
+    const predefinedPlaces = useMemo(() => [
         {
             description: "📍 Usar mi ubicación actual",
             geometry: { location: { lat: 0, lng: 0 } },
@@ -56,57 +35,120 @@ export default function LocationSearchScreen() {
         ...favorites.map(fav => ({
             description: `⭐ ${fav.name} - ${fav.address}`,
             geometry: { location: { lat: fav.lat, lng: fav.lng } },
-            isFavorite: true
         }))
-    ];
+    ], [favorites]);
+
+    const handleCurrentLocation = async () => {
+        let { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') {
+            Alert.alert("Permiso denegado", "Necesitamos acceso a tu ubicación.");
+            return;
+        }
+        try {
+            let locationData = await Location.getCurrentPositionAsync({});
+            
+            sendLocationBack("Mi ubicación actual", {
+                lat: locationData.coords.latitude,
+                lng: locationData.coords.longitude
+            });
+        } catch (error) {
+            Alert.alert("Error", "No se pudo obtener la ubicación actual.");
+        }
+    };
+
+    const sendLocationBack = (description, coords) => {
+        navigation.navigate("ExploreMain", {
+            selectedLocation: {
+                type,
+                description,
+                location: coords,
+            },
+        });
+    };
 
     return (
         <View style={styles.container}>
+            <Text style={styles.headerTitle}>
+                {type === 'origin' ? "Punto de partida" : "¿A dónde vas?"}
+            </Text>
+
             <GooglePlacesAutocomplete
-                placeholder={type === 'origin' ? "Desde" : "Hacia"}
+                placeholder={type === 'origin' ? "Desde donde sales..." : "Busca un destino..."}
                 fetchDetails={true}
-                minLength={0}
                 onPress={(data, details = null) => {
                     if (data.isCurrentLocation) {
                         handleCurrentLocation();
                     } else if (data.isMapPicker) {
-                        console.log("Abrir Mapa");
+                        navigation.navigate("MapPicker", { type });
                     } else {
-                        navigation.navigate("ExploreMain", {
-                            selectedLocation: {
-                                type,
-                                description: data.description,
-                                coords: {
-                                    lat: details?.geometry?.location.lat,
-                                    lng: details?.geometry?.location.lng
-                                },
-                            },
-                        });
+                        const coords = details?.geometry?.location || data.geometry?.location;
+                        sendLocationBack(data.description, coords);
                     }
                 }}
-                predefinedPlaces={predefinedPlaces}
                 query={{
-                    key: GOOGLE_MAPS_API_KEY,
+                    key: GOOGLE_PLACES_API_KEY, 
                     language: "es",
                     components: "country:pe",
-                    location: "-12.046374,-77.042793",
-                    radius: "50000",
                 }}
+                predefinedPlaces={predefinedPlaces}
+                nearbyPlacesAPI="GooglePlacesSearch" 
+                debounce={400}
+                enablePoweredByContainer={false}
                 styles={{
+                    container: { flex: 0 }, 
                     textInput: styles.input,
                     listView: styles.listView,
                     row: styles.row,
-                    description: { color: colors.textPrimary }
+                    description: { color: '#333', fontSize: 15 },
+                    predefinedPlacesDescription: { 
+                        color: colors.primary,
+                        fontWeight: '700',
+                        fontSize: 15
+                    }
                 }}
-                enablePoweredByContainer={false}
             />
         </View>
     );
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.white, padding: spacing.md, paddingTop: 40 },
-    input: { height: 50, borderRadius: 10, borderWidth: 1, borderColor: colors.grayLight, paddingHorizontal: 15, fontSize: 16, backgroundColor: '#f9f9f9' },
-    listView: { borderTopWidth: 0, elevation: 5, backgroundColor: 'white', borderRadius: 10 },
-    row: { padding: 15, height: 60, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
+    container: { 
+        flex: 1, 
+        backgroundColor: colors.white, 
+        padding: spacing.lg, 
+        paddingTop: 80 
+    },
+    headerTitle: {
+        fontSize: 28,
+        fontWeight: "bold",
+        color: colors.black || "#1A1A1A",
+        marginBottom: 25,
+    },
+    input: { 
+        height: 55, 
+        borderRadius: 15, 
+        borderWidth: 1.5, 
+        borderColor: colors.grayLight, 
+        paddingHorizontal: 15, 
+        fontSize: 16, 
+        backgroundColor: '#fdfdfd',
+        color: '#000',
+    },
+    listView: { 
+        backgroundColor: 'white', 
+        borderRadius: 12,
+        elevation: 6,
+        zIndex: 999,
+        marginTop: 15, 
+        borderWidth: 1,
+        borderColor: '#eee',
+        overflow: 'hidden'
+    },
+    row: { 
+        padding: 15, 
+        height: 65, 
+        borderBottomWidth: 1, 
+        borderBottomColor: '#f5f5f5', 
+        justifyContent: 'center' 
+    },
 });
